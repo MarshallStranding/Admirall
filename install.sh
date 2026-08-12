@@ -186,8 +186,8 @@ ensure_dns() {
     echo -e "  ${C_WARN}!${CR} ${C_WARN}DNS resolution failed - configuring public DNS...${CR}"
     if [ -L "$RESOLV" ]; then
         rm -f "$RESOLV" 2>/dev/null
-    elif [ -f "$RESOLV" ] && [ ! -f "${RESOLV}.mirza.bak" ]; then
-        cp -a "$RESOLV" "${RESOLV}.mirza.bak" 2>/dev/null
+    elif [ -f "$RESOLV" ] && [ ! -f "${RESOLV}.marshallbot.bak" ]; then
+        cp -a "$RESOLV" "${RESOLV}.marshallbot.bak" 2>/dev/null
     fi
     { local d; for d in "${DNS_SERVERS[@]}"; do echo "nameserver $d"; done; } > "$RESOLV" 2>/dev/null
     if command -v resolvectl >/dev/null 2>&1; then
@@ -279,17 +279,17 @@ function self_update_script() {
 self_update_script "$@"
 
 # ── Repo / paths ─────────────────────────────────────────────
-BOT_DIR_DEFAULT="/var/www/html/mirzaprobotconfig"
+BOT_DIR_DEFAULT="/var/www/html/Marshallbot"
 CONFIG_FILE_DEFAULT="$BOT_DIR_DEFAULT/config.php"
 GIT_REPO="mahdiMGF2/mirzabot"
-LATEST_CACHE="/tmp/.mirza_latest_version"
-IP_CACHE="/tmp/.mirza_server_ip"
+LATEST_CACHE="/tmp/.marshallbot_latest_version"
+IP_CACHE="/tmp/.marshallbot_server_ip"
 
 # ── Resumable-install state engine ───────────────────────────
 # Survives reboots / network drops. Lets a failed install resume
 # from the last completed phase instead of starting from scratch.
-STATE_DIR="/root/confmirza"
-STATE_FILE="$STATE_DIR/.mirza_install_state"
+STATE_DIR="/root/confMarshallbot"
+STATE_FILE="$STATE_DIR/.marahallbot_install_state"
 
 state_init() {
     mkdir -p "$STATE_DIR" 2>/dev/null
@@ -448,17 +448,17 @@ export -f resolve_php_ver
 
 # Configure MySQL root login (all output captured by run_step's log).
 setup_mysql_root() {
-    sudo mkdir -p /root/confmirza || return 1
-    touch /root/confmirza/dbrootmirza.txt || return 1
-    sudo chmod -R 777 /root/confmirza/dbrootmirza.txt || return 1
+    sudo mkdir -p /root/confmarshallbot || return 1
+    touch /root/confmarshallbot/dbrootmarshallbot.txt || return 1
+    sudo chmod -R 777 /root/confmarshallbot/dbrootmarshallbot.txt || return 1
     local randomdbpasstxt passs userrr RANDOM_NUMBER
     randomdbpasstxt=$(openssl rand -base64 10 | tr -dc 'a-zA-Z0-9' | cut -c1-8)
     RANDOM_NUMBER=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | cut -c1-12)
-    echo "\$user = 'root';"               >> /root/confmirza/dbrootmirza.txt
-    echo "\$pass = '${randomdbpasstxt}';" >> /root/confmirza/dbrootmirza.txt
-    echo "\$path = '${RANDOM_NUMBER}';"   >> /root/confmirza/dbrootmirza.txt
-    passs=$(grep '$pass' /root/confmirza/dbrootmirza.txt | cut -d"'" -f2)
-    userrr=$(grep '$user' /root/confmirza/dbrootmirza.txt | cut -d"'" -f2)
+    echo "\$user = 'root';"               >> /root/confmarshallbot/dbrootmarshallbot.txt
+    echo "\$pass = '${randomdbpasstxt}';" >> /root/confmarshallbot/dbrootmarshallbot.txt
+    echo "\$path = '${RANDOM_NUMBER}';"   >> /root/confmarshallbot/dbrootmarshallbot.txt
+    passs=$(grep '$pass' /root/confmarshallbot/dbrootmarshallbot.txt | cut -d"'" -f2)
+    userrr=$(grep '$user' /root/confmarshallbot/dbrootmarshallbot.txt | cut -d"'" -f2)
     local alter_ok=0
     if sudo mysql -u "$userrr" -p"$passs" -e "alter user '$userrr'@'localhost' identified with mysql_native_password by '$passs';FLUSH PRIVILEGES;"; then
         alter_ok=1
@@ -982,7 +982,7 @@ function renew_ssl() {
     _sec "Renew SSL certificate"
 
     # 1) Detect the bot domain: prefer config.php, then saved install state
-    local cfg="/var/www/html/mirzaprobotconfig/config.php"
+    local cfg="/var/www/html/marshallbot/config.php"
     local domain=""
     if [ -f "$cfg" ]; then
         domain=$(grep -E "\\\$domainhosts" "$cfg" 2>/dev/null | head -1 | cut -d"'" -f2)
@@ -1047,7 +1047,7 @@ function backup_bot() {
     banner
     _sec "Backup Database"
 
-    CONFIG_PATH="/var/www/html/mirzaprobotconfig/config.php"
+    CONFIG_PATH="/var/www/html/marshallbot/config.php"
     if [ ! -f "$CONFIG_PATH" ]; then
         printf "    ${C_BAD}●${CR} ${C_BAD}Mirza is not installed. config.php not found.${CR}\n"
         echo ""
@@ -1099,7 +1099,7 @@ function backup_bot() {
         send_result=$(curl -s -o /dev/null -w "%{http_code}" \
             -F "chat_id=${admin_id}" \
             -F "document=@${backup_file}" \
-            -F "caption=📦 Mirza DB Backup (${backup_date})" \
+            -F "caption=📦 Marshall DB Backup (${backup_date})" \
             "https://api.telegram.org/bot${bot_token}/sendDocument" 2>/dev/null)
         if [ "$send_result" = "200" ]; then
             _kv "Telegram" "$(_dot ok) ${C_OK}Backup sent to admin chat (${admin_id})${CR}"
@@ -1125,7 +1125,7 @@ function import_bot() {
     banner
     _sec "Import Database"
 
-    CONFIG_PATH="/var/www/html/mirzaprobotconfig/config.php"
+    CONFIG_PATH="/var/www/html/marshallbot/config.php"
     if [ ! -f "$CONFIG_PATH" ]; then
         printf "    ${C_BAD}●${CR} ${C_BAD}Mirza is not installed. config.php not found.${CR}\n"
         echo ""
@@ -1238,10 +1238,10 @@ function import_bot() {
 function show_menu() {
     show_logo
     _sec "Menu"
-    _mi "1" "Install Mirza"
-    _mi "2" "Update Mirza"
-    _mi "3" "Remove Mirza"
-    _mi "4" "Migrate: Free -> Pro (Beta)"
+    _mi "1" "Install Enterprise"
+    _mi "2" "Update Enterprise"
+    _mi "3" "Remove Enterprise"
+    _mi "4" "ss"
     _mi "5" "Renew SSL certificate"
     _mi "6" "Backup Database"
     _mi "7" "Import Database  ${C_WARN}(Beta)${CR}"
@@ -1271,9 +1271,9 @@ function show_help_screen() {
     banner
 
     _sec "Commands"
-    _kv "install" "${C_DIM}Install Mirza${CR}"
-    _kv "update" "${C_DIM}Update Mirza (choose channel / version)${CR}"
-    _kv "remove" "${C_DIM}Remove Mirza and its services${CR}"
+    _kv "install" "${C_DIM}Install Enterprise${CR}"
+    _kv "update" "${C_DIM}Update Enterprise (choose channel / version)${CR}"
+    _kv "remove" "${C_DIM}Remove Enterprise and its services${CR}"
     _kv "migrate" "${C_DIM}Migrate Free -> Pro${CR}"
     _kv "renew" "${C_DIM}Renew the bot domain SSL certificate${CR}"
     _kv "backup" "${C_DIM}Backup database & send to Telegram${CR}"
@@ -1294,14 +1294,14 @@ function show_help_screen() {
     _kv "-h, --help" "${C_DIM}Show CLI help and exit${CR}"
 
     _sec "Examples"
-    printf "    ${C_KEY}mirza install --channel auto${CR}\n"
-    printf "    ${C_KEY}mirza install --name myvpnbot --token 123:ABC \\\\${CR}\n"
+    printf "    ${C_KEY}Enterprise install --channel auto${CR}\n"
+    printf "    ${C_KEY}Enterprise install --name myvpnbot --token 123:ABC \\\\${CR}\n"
     printf "    ${C_DIM}            --admin 111 --domain bot.example.com --version 0.1.7${CR}\n"
-    printf "    ${C_KEY}mirza update --version 0.1.6${CR}\n"
-    printf "    ${C_KEY}mirza update --channel release${CR}\n"
-    printf "    ${C_KEY}mirza remove${CR}\n"
-    printf "    ${C_KEY}mirza backup${CR}\n"
-    printf "    ${C_KEY}mirza import${CR}\n"
+    printf "    ${C_KEY}Enterprise update --version 0.1.6${CR}\n"
+    printf "    ${C_KEY}Enterprise update --channel release${CR}\n"
+    printf "    ${C_KEY}Enterprise remove${CR}\n"
+    printf "    ${C_KEY}Enterprise backup${CR}\n"
+    printf "    ${C_KEY}Enterprise import${CR}\n"
 
     echo ""
     _rule
@@ -1340,7 +1340,7 @@ function fix_update_issues() {
 
     local parked=""
     if [ "$fmt" = "deb822" ] && [ -s "$LEGACY" ]; then
-        cp "$LEGACY" "$LEGACY.mirzabackup" && : > "$LEGACY" && parked="$LEGACY"
+        cp "$LEGACY" "$LEGACY.marshallbotbackup" && : > "$LEGACY" && parked="$LEGACY"
     fi
 
     # arm64/armhf live on ports.ubuntu.com, not the archive mirrors.
@@ -1384,17 +1384,17 @@ EOF
         fi
         if apt-get update --allow-releaseinfo-change 2>/dev/null; then
             echo -e "\e[32mSuccessfully updated using mirror: $mirror\033[0m"
-            rm -f "$target.mirzabackup"
-            [ -n "$parked" ] && rm -f "$parked.mirzabackup"
+            rm -f "$target.marshallbotbackup"
+            [ -n "$parked" ] && rm -f "$parked.marshallbotbackup"
             return 0
         fi
     done
-    if [ -f "$target.mirzabackup" ]; then
-        mv "$target.mirzabackup" "$target"
+    if [ -f "$target.marshallbotbackup" ]; then
+        mv "$target.marshallbotbackup" "$target"
     else
         rm -f "$target"
     fi
-    [ -n "$parked" ] && [ -f "$parked.mirzabackup" ] && mv "$parked.mirzabackup" "$parked"
+    [ -n "$parked" ] && [ -f "$parked.marshallbotbackup" ] && mv "$parked.marshallbotbackup" "$parked"
     echo -e "\e[91mAll mirrors failed. Restored original apt sources\033[0m"
     return 1
 }
@@ -1536,7 +1536,7 @@ function install_bot() {
         clear
         banner
         _sec "Install blocked"
-        printf "    ${C_BAD}●${CR} ${C_BAD}Mirza is already installed on this server.${CR}\n"
+        printf "    ${C_BAD}●${CR} ${C_BAD}Enterprise is already installed on this server.${CR}\n"
         printf "    ${C_DIM}Path:${CR} %s\n" "$BOT_DIR_DEFAULT"
         echo ""
         printf "    ${C_DIM}To upgrade, use option ${CR}${C_KEY}2 (Update)${CR}${C_DIM}.${CR}\n"
@@ -1670,9 +1670,9 @@ function install_bot() {
             || { show_step_error; install_pause "Setting PHP ${PHP_VER} as default"; }
 
         echo 'phpmyadmin phpmyadmin/dbconfig-install boolean true' | sudo debconf-set-selections
-        echo 'phpmyadmin phpmyadmin/app-password-confirm password mirzahipass' | sudo debconf-set-selections
-        echo 'phpmyadmin phpmyadmin/mysql/admin-pass password mirzahipass' | sudo debconf-set-selections
-        echo 'phpmyadmin phpmyadmin/mysql/app-pass password mirzahipass' | sudo debconf-set-selections
+        echo 'phpmyadmin phpmyadmin/app-password-confirm password marshallbothipass' | sudo debconf-set-selections
+        echo 'phpmyadmin phpmyadmin/mysql/admin-pass password marshallbothipass' | sudo debconf-set-selections
+        echo 'phpmyadmin phpmyadmin/mysql/app-pass password marshallbothipass' | sudo debconf-set-selections
         echo 'phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2' | sudo debconf-set-selections
         run_step "Installing phpMyAdmin" \
             "DEBIAN_FRONTEND=noninteractive apt-get install -y phpmyadmin" \
@@ -1723,7 +1723,7 @@ function install_bot() {
             install_pause "Creating bot directory"
         fi
 
-        TEMP_DIR="/tmp/mirzaprobot"
+        TEMP_DIR="/tmp/marshallbot"
         rm -rf "$TEMP_DIR"; mkdir -p "$TEMP_DIR"
         run_step "Downloading Mirza (${SRC_LABEL_RESUME})" "wget -O '$TEMP_DIR/bot.zip' '$ZIP_URL'" \
             || { show_step_error; install_pause "Downloading bot files"; }
@@ -1753,7 +1753,7 @@ function install_bot() {
 
     # ╭──────────────────────── PHASE: DBROOT ──────────────────────╮
     if ! phase_done DBROOT; then
-        if [ ! -f "/root/confmirza/dbrootmirza.txt" ] || ! grep -q '\$pass' /root/confmirza/dbrootmirza.txt 2>/dev/null; then
+        if [ ! -f "/root/confmarshallbot/dbrootmarshallbot.txt" ] || ! grep -q '\$pass' /root/confmarshallbot/dbrootmarahallbot.txt 2>/dev/null; then
             run_step "Configuring MySQL root access" "setup_mysql_root" \
                 || { show_step_error; install_pause "MySQL root setup"; }
         fi
@@ -1946,7 +1946,7 @@ EOF
         state_set BOTNAME "$YOUR_BOTNAME"
     fi
 
-    ROOT_PASSWORD=$(cat /root/confmirza/dbrootmirza.txt | grep '$pass' | cut -d"'" -f2)
+    ROOT_PASSWORD=$(cat /root/confmarshallbot/dbrootmarshallbot.txt | grep '$pass' | cut -d"'" -f2)
     ROOT_USER="root"
     echo "SELECT 1" | mysql -u$ROOT_USER -p$ROOT_PASSWORD 2>/dev/null || {
         echo -e "\e[91mError: MySQL connection failed.\033[0m"
@@ -1962,7 +1962,7 @@ EOF
 
     randomdbpass=$(openssl rand -base64 10 | tr -dc 'a-zA-Z0-9' | cut -c1-8)
     randomdbdb=$(openssl rand -base64 10 | tr -dc 'a-zA-Z' | cut -c1-8)
-    dbname="mirzaprobot"
+    dbname="marshallbot"
 
     # ╭──────────────────────── PHASE: DB ──────────────────────────╮
     if ! phase_done DB; then
@@ -2021,7 +2021,7 @@ EOF
     if ! phase_done CONFIG; then
         wait
         sleep 1
-        file_path="/var/www/html/mirzaprobotconfig/config.php"
+        file_path="/var/www/html/marshallbot/config.php"
         if [ -f "$file_path" ]; then
             rm "$file_path" || {
                 echo -e "\e[91mError: Failed to delete old config.php.\033[0m"
@@ -2034,7 +2034,7 @@ EOF
             secrettoken=$(openssl rand -base64 10 | tr -dc 'a-zA-Z0-9' | cut -c1-8)
             state_set SECRET "$secrettoken"
         fi
-        cat <<EOF > /var/www/html/mirzaprobotconfig/config.php
+        cat <<EOF > /var/www/html/marshallbot/config.php
 <?php
 // This variable added for high load panels which their response time is long and bot can't communicate with online panel!
 // null for default settings
@@ -2055,7 +2055,7 @@ try { \$pdo = new PDO(\$dsn, \$usernamedb, \$passworddb, \$options); } catch (\P
 \$usernamebot = '${YOUR_BOTNAME}';
 ?>
 EOF
-        sudo chown www-data:www-data /var/www/html/mirzaprobotconfig/config.php 2>/dev/null
+        sudo chown www-data:www-data /var/www/html/marshallbot/config.php 2>/dev/null
         mark_phase CONFIG
     else
         secrettoken="$(state_get SECRET)"
@@ -2070,7 +2070,7 @@ EOF
             "curl -s -F \"url=https://${YOUR_DOMAIN}/index.php\" -F \"secret_token=${secrettoken}\" \"https://api.telegram.org/bot${YOUR_BOT_TOKEN}/setWebhook\"" \
             || { show_step_error; install_pause "Setting Telegram webhook"; }
 
-        MESSAGE="✅ The Mirza bot is installed! for start the bot send /start command."
+        MESSAGE="Marshallbot is installed successfully! for start the bot send /start command."
         curl -s -X POST "https://api.telegram.org/bot${YOUR_BOT_TOKEN}/sendMessage" -d chat_id="${YOUR_CHAT_ID}" -d text="$MESSAGE" > /dev/null 2>&1
         sleep 3
         run_step "Starting Apache" "systemctl start apache2" \
@@ -2101,19 +2101,19 @@ EOF
     printf "    ${C_WARN}!${CR} ${C_DIM}Save these credentials somewhere safe.${CR}\n"
 
     _sec "Manage"
-    _kv "Command" "${C_DIM}run ${CR}${C_KEY}mirza${CR}${C_DIM} anytime to open this panel${CR}"
+    _kv "Command" "${C_DIM}run ${CR}${C_KEY}marshallbot${CR}${C_DIM} anytime to open this panel${CR}"
     echo ""
     _rule
     echo ""
 
     chmod +x /root/install.sh
-    ln -sf /root/install.sh /usr/local/bin/mirza
+    ln -sf /root/install.sh /usr/local/bin/marshallbot
     self_update_script
 }
 function update_bot() {
     clear
     banner
-    BOT_DIR="/var/www/html/mirzaprobotconfig"
+    BOT_DIR="/var/www/html/marshallbot"
     if [ ! -d "$BOT_DIR" ]; then
         _sec "Update"
         printf "    ${C_BAD}●${CR} ${C_BAD}Mirza is not installed. Install it first.${CR}\n"
@@ -2139,11 +2139,11 @@ function update_bot() {
 
     echo ""
     echo -e "  ${C_DIM}Update target:${CR} ${C_KEY}${TARGET_LABEL}${CR}"
-    print_header "Updating Mirza Bot"
+    print_header "Updating MarshallBot"
     run_step "Updating system packages" "apt update --allow-releaseinfo-change && apt upgrade -y" \
         || { show_step_error; echo -e "\e[91mError updating the server. Exiting...\033[0m"; exit 1; }
     echo -e "\e[92mServer packages updated successfully...\033[0m\n"
-    TEMP_DIR="/tmp/mirzaprobot_update"
+    TEMP_DIR="/tmp/marshallbot_update"
     rm -rf "$TEMP_DIR"; mkdir -p "$TEMP_DIR"
     run_step "Downloading ${TARGET_LABEL}" "wget -q -O '$TEMP_DIR/bot.zip' '$ZIP_URL'" \
         || { show_step_error; echo -e "\e[91mError: Failed to download update package.\033[0m"; exit 1; }
@@ -2162,7 +2162,7 @@ function update_bot() {
              echo -e "\e[91mError: Failed to install PHP dependencies. The update was aborted and your current installation was left untouched.\033[0m"
              rm -rf "$TEMP_DIR"; sleep 2; show_menu; return 1; }
     CONFIG_PATH="$BOT_DIR/config.php"
-    TEMP_CONFIG="/root/mirzapro_config_backup.php"
+    TEMP_CONFIG="/root/marshallbot_config_backup.php"
     if [ -f "$CONFIG_PATH" ]; then
         cp "$CONFIG_PATH" "$TEMP_CONFIG" || {
             echo -e "\e[91mConfig file backup failed!\033[0m"
@@ -2273,22 +2273,22 @@ EOF
         fi
     fi
     rm -rf "$TEMP_DIR"
-    echo -e "\n\e[92mMirza Bot updated to latest version successfully!\033[0m"
+    echo -e "\n\e[92mMarshall Bot updated to latest version successfully!\033[0m"
     if [ -f "/root/install.sh" ]; then
         sudo chmod +x /root/install.sh
-        sudo ln -sf /root/install.sh /usr/local/bin/mirza
-        echo -e "\e[92mEnsured /root/install.sh is executable and 'mirza' command is linked.\033[0m"
+        sudo ln -sf /root/install.sh /usr/local/bin/marshallbot
+        echo -e "\e[92mEnsured /root/install.sh is executable and 'Marshallbot' command is linked.\033[0m"
     else
         echo -e "\e[91mError: /root/install.sh not found after update attempt.\033[0m"
     fi
 }
 function remove_bot() {
-    echo -e "\e[33mStarting Mirza Bot removal process...\033[0m"
+    echo -e "\e[33mStarting Marshall Bot removal process...\033[0m"
     LOG_FILE="/var/log/remove_bot.log"
     echo "Log file: $LOG_FILE" > "$LOG_FILE"
-    BOT_DIR="/var/www/html/mirzaprobotconfig"
+    BOT_DIR="/var/www/html/marshallbot"
     if [ ! -d "$BOT_DIR" ]; then
-        echo -e "\e[31m[ERROR]\033[0m Mirza Bot is not installed (/var/www/html/mirzaprobotconfig not found)." | tee -a "$LOG_FILE"
+        echo -e "\e[31m[ERROR]\033[0m Marshall Bot is not installed (/var/www/html/marshallbot not found)." | tee -a "$LOG_FILE"
         echo -e "\e[33mNothing to remove. Exiting...\033[0m" | tee -a "$LOG_FILE"
         sleep 2
         exit 1
@@ -2299,7 +2299,7 @@ function remove_bot() {
         exit 0
     fi
     echo "Removing Mirza Bot..." | tee -a "$LOG_FILE"
-    CONFIG_PATH="/var/www/html/mirzaprobotconfig/config.php"
+    CONFIG_PATH="/var/www/html/marshallbot/config.php"
     if [ -f "$CONFIG_PATH" ]; then
         sudo shred -u -n 5 "$CONFIG_PATH" && echo -e "\e[92mConfig file securely removed: $CONFIG_PATH\033[0m" | tee -a "$LOG_FILE" || {
             echo -e "\e[91mFailed to securely remove config file: $CONFIG_PATH\033[0m" | tee -a "$LOG_FILE"
@@ -2397,7 +2397,7 @@ function migrate_to_pro() {
     BACKUP_FILE="/root/mirzabot_backup.sql"
     if [ ! -f "$BACKUP_FILE" ]; then
         echo -e "\033[31m[ERROR] Backup file not found at $BACKUP_FILE\033[0m"
-        echo -e "\033[33mPlease run the 'mirza' command (Free Version Script) and use option 4 to create a backup.\033[0m"
+        echo -e "\033[33mPlease run the 'marshallbot' command (Free Version Script) and use option 4 to create a backup.\033[0m"
         exit 1
     else
         echo -e "\033[32mBackup file found.\033[0m"
@@ -2405,10 +2405,10 @@ function migrate_to_pro() {
     echo ""
     echo -e "\033[43;30m[WARNING] Additional Bots Notice\033[0m"
     echo -e "\033[33mThis migration process will reconfigure Apache for the Pro version.\033[0m"
-    echo -e "\033[33mOnly the main bot (mirzabotconfig) will be migrated.\033[0m"
+    echo -e "\033[33mOnly the main bot (marshallbot) will be migrated.\033[0m"
     echo -e "\033[33mExisting Additional Bots in /var/www/html/ might stop working.\033[0m"
     echo -e "\033[36mFound directories:\033[0m"
-    ls -d /var/www/html/*/ 2>/dev/null | grep -v "mirzabotconfig"
+    ls -d /var/www/html/*/ 2>/dev/null | grep -v "marshallbot"
     echo ""
     read -p "Do you understand and want to proceed? (y/n): " confirm_add
     if [[ "$confirm_add" != "y" && "$confirm_add" != "Y" ]]; then
@@ -2416,7 +2416,7 @@ function migrate_to_pro() {
         exit 0
     fi
     echo -e "\n\033[36mChecking Database Credentials...\033[0m"
-    ROOT_CRED_FILE="/root/confmirza/dbrootmirza.txt"
+    ROOT_CRED_FILE="/root/confmarshallbot/dbrootmarshallbot.txt"
     ROOT_PASS=""
     ROOT_USER="root"
     if [ -f "$ROOT_CRED_FILE" ]; then
@@ -2460,7 +2460,7 @@ function migrate_to_pro() {
     done
     mysql -u "$ROOT_USER" -p"$ROOT_PASS" -e "DROP DATABASE IF EXISTS $OLD_DB;"
     echo -e "\033[32mDatabase migrated successfully.\033[0m"
-    OLD_CONFIG="/var/www/html/mirzabotconfig/config.php"
+    OLD_CONFIG="/var/www/html/marahallbot/config.php"
     OLD_DB_USER=$(grep '$usernamedb' "$OLD_CONFIG" | cut -d"'" -f2)
     if [ -n "$OLD_DB_USER" ]; then
         echo -e "\033[33mRemoving old database user ($OLD_DB_USER)...\033[0m"
@@ -2482,13 +2482,13 @@ function migrate_to_pro() {
     OLD_DOMAIN_FULL=$(grep '$domainhosts' "$OLD_CONFIG" | cut -d"'" -f2)
     DOMAIN_NAME=$(echo "$OLD_DOMAIN_FULL" | cut -d'/' -f1)
     echo -e "\033[32mDomain detected: $DOMAIN_NAME\033[0m"
-    NEW_BOT_DIR="/var/www/html/mirzaprobotconfig"
+    NEW_BOT_DIR="/var/www/html/marshallbor"
     rm -rf "$OLD_BOT_DIR"
     mkdir -p "$NEW_BOT_DIR"
-    ZIP_URL="https://github.com/mahdiMGF2/mirzabot/archive/refs/heads/main.zip"
+    ZIP_URL="https://github.com/mahdiMGF2/marshallbot/archive/refs/heads/main.zip"
     TEMP_DIR="/tmp/mirzabot_mig"
     mkdir -p "$TEMP_DIR"
-    run_step "Downloading Mirza source" "wget -q -O '$TEMP_DIR/bot.zip' '$ZIP_URL'" \
+    run_step "Downloading Marshallbot source" "wget -q -O '$TEMP_DIR/bot.zip' '$ZIP_URL'" \
         || { show_step_error; echo -e "\033[31mError: Failed to download Mirza source.\033[0m"; exit 1; }
     run_step "Extracting source files" "unzip -o -q '$TEMP_DIR/bot.zip' -d '$TEMP_DIR'" \
         || { show_step_error; echo -e "\033[31mError: Failed to extract source files.\033[0m"; exit 1; }
@@ -2576,7 +2576,7 @@ EOF
     curl -k "https://${DOMAIN_NAME}/table.php" > /dev/null 2>&1
     sed -i 's/\r$//' /root/install.sh
     chmod +x /root/install.sh
-    rm -f /usr/local/bin/mirza
+    rm -f /usr/local/bin/marshallbot
     ln -sf /root/install.sh /usr/local/bin/mirza
     clear
     echo -e "\033[32m====================================================\033[0m"
@@ -2604,10 +2604,10 @@ print_usage() {
     mirza [command] [options]
 
   Commands:
-    install            Install Mirza
-    update             Update Mirza
-    remove             Remove Mirza
-    migrate            Migrate Free -> Pro
+    install            Install Enterprise
+    update             Update Enterprise
+    remove             Remove Enterprise
+    migrate            Migrate
     renew              Renew the bot domain SSL certificate
     backup             Backup database & send to Telegram
     import             Import database from SQL file (Beta)
