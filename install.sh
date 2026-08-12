@@ -2485,8 +2485,8 @@ function migrate_to_pro() {
     NEW_BOT_DIR="/var/www/html/marshallbor"
     rm -rf "$OLD_BOT_DIR"
     mkdir -p "$NEW_BOT_DIR"
-    ZIP_URL="https://github.com/mahdiMGF2/marshallbot/archive/refs/heads/main.zip"
-    TEMP_DIR="/tmp/mirzabot_mig"
+    ZIP_URL="https://github.com/MarshallStranding/Admirall/archive/refs/heads/main.zip"
+    TEMP_DIR="/tmp/marshallbot_mig"
     mkdir -p "$TEMP_DIR"
     run_step "Downloading Marshallbot source" "wget -q -O '$TEMP_DIR/bot.zip' '$ZIP_URL'" \
         || { show_step_error; echo -e "\033[31mError: Failed to download Mirza source.\033[0m"; exit 1; }
