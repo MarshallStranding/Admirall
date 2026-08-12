@@ -214,9 +214,9 @@ _link_mirza() {
 # install it to /root/install.sh, link it into /usr/local/bin, and re-exec.
 function self_update_script() {
     local MASTER_PATH="/root/install.sh"
-    local BIN_LINK="/usr/local/bin/mirza"
+    local BIN_LINK="/usr/local/bin/marshallbot"
     local URL="https://raw.githubusercontent.com/MarshallStranding/Admirall/main/install.sh"
-    local TEMP_FILE="/tmp/mirzabot_update.sh"
+    local TEMP_FILE="/tmp/marshallbot_update.sh"
 
     # Make sure DNS works before reaching GitHub
     ensure_dns >/dev/null 2>&1
@@ -245,7 +245,7 @@ function self_update_script() {
             echo -e "\e[91mCritical: cannot install the script for the first time without internet.\033[0m"
             exit 1
         fi
-        _link_mirza "$MASTER_PATH" "$BIN_LINK"
+        _link_marshallbot "$MASTER_PATH" "$BIN_LINK"
         return 0
     fi
 
@@ -265,7 +265,7 @@ function self_update_script() {
         fi
         install -m 0755 "$TEMP_FILE" "$MASTER_PATH" 2>/dev/null || { mv "$TEMP_FILE" "$MASTER_PATH"; chmod +x "$MASTER_PATH"; }
         rm -f "$TEMP_FILE"
-        _link_mirza "$MASTER_PATH" "$BIN_LINK"
+        _link_marshallbot "$MASTER_PATH" "$BIN_LINK"
         echo -e "\e[32mUpdated. Restarting with the latest version...\033[0m"
         sleep 1
         exec bash "$MASTER_PATH" "$@"
@@ -273,7 +273,7 @@ function self_update_script() {
 
     # Already up to date - just make sure it is linked under /usr/local/bin
     rm -f "$TEMP_FILE"
-    _link_mirza "$MASTER_PATH" "$BIN_LINK"
+    _link_marshallbot "$MASTER_PATH" "$BIN_LINK"
     echo -e "\e[32mScript is up to date.\033[0m"
 }
 self_update_script "$@"
