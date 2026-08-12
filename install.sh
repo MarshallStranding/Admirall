@@ -201,7 +201,7 @@ ensure_dns() {
 }
 
 # Ensure /usr/local/bin/mirza points at the master script
-_link_mirza() {
+_link_marshallbot() {
     local master="$1" link="$2"
     chmod +x "$master" 2>/dev/null
     if [ ! -e "$link" ] || [ "$(readlink -f "$link" 2>/dev/null)" != "$(readlink -f "$master" 2>/dev/null)" ]; then
@@ -279,16 +279,16 @@ function self_update_script() {
 self_update_script "$@"
 
 # ── Repo / paths ─────────────────────────────────────────────
-BOT_DIR_DEFAULT="/var/www/html/Marshallbot"
+BOT_DIR_DEFAULT="/var/www/html/marshallbot"
 CONFIG_FILE_DEFAULT="$BOT_DIR_DEFAULT/config.php"
-GIT_REPO="mahdiMGF2/mirzabot"
+GIT_REPO="MarshallStranding/Admirall"
 LATEST_CACHE="/tmp/.marshallbot_latest_version"
 IP_CACHE="/tmp/.marshallbot_server_ip"
 
 # ── Resumable-install state engine ───────────────────────────
 # Survives reboots / network drops. Lets a failed install resume
 # from the last completed phase instead of starting from scratch.
-STATE_DIR="/root/confMarshallbot"
+STATE_DIR="/root/confmarshallbot"
 STATE_FILE="$STATE_DIR/.marahallbot_install_state"
 
 state_init() {
@@ -479,7 +479,7 @@ setup_mysql_root() {
         [ -d "$d" ] && { dropin_dir="$d"; break; }
     done
     [ -n "$dropin_dir" ] || return 1
-    local dropin="$dropin_dir/zz-mirza-recovery.cnf"
+    local dropin="$dropin_dir/zz-marahallbot-recovery.cnf"
     printf '[mysqld]\nskip-grant-tables\n' | sudo tee "$dropin" >/dev/null || return 1
     sudo systemctl restart mysql
     sudo mysql <<EOF
@@ -839,8 +839,8 @@ version_section() {
     else
         _kv "Latest" "$(_dot warn) ${C_DIM}unknown (offline)${CR}"
     fi
-    _kv "Channel" "${C_DIM}t.me/mirzapanel${CR}"
-    _kv "Group" "${C_DIM}t.me/mirzapanelgroup${CR}"
+    _kv "Channel" "${C_DIM}t.me/marahallbotpanel${CR}"
+    _kv "Group" "${C_DIM}t.me/marahallbotpanelgroup${CR}"
 }
 
 bot_section() {
@@ -1082,7 +1082,7 @@ function backup_bot() {
 
     local backup_date
     backup_date=$(date +"%Y-%m-%d_%H-%M-%S")
-    local backup_file="/root/mirza_backup_${backup_date}.sql"
+    local backup_file="/root/marahallbot_backup_${backup_date}.sql"
 
     run_step "Exporting database (${dbname})" \
         "mysqldump -h '$dbhost' -u '$dbuser' -p'$dbpass' --no-tablespaces --ssl-mode=DISABLED '$dbname' > '$backup_file'" \
@@ -1165,7 +1165,7 @@ function import_bot() {
         sz=$(du -h "$f" 2>/dev/null | awk '{print $1}')
         printf "    ${C_KEY}[%d]${CR}  ${C_TXT}%s${CR}  ${C_DIM}(%s)${CR}\n" "$i" "$(basename "$f")" "$sz"
         i=$((i + 1))
-    done < <(find /root -maxdepth 1 -name 'mirza_backup_*.sql' -type f 2>/dev/null | sort -r)
+    done < <(find /root -maxdepth 1 -name 'marshallbot_backup_*.sql' -type f 2>/dev/null | sort -r)
 
     if [ "${#files[@]}" -eq 0 ]; then
         printf "    ${C_WARN}!${CR} ${C_WARN}No backup files found in /root/${CR}\n"
