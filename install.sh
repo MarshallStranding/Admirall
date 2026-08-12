@@ -215,7 +215,7 @@ _link_mirza() {
 function self_update_script() {
     local MASTER_PATH="/root/install.sh"
     local BIN_LINK="/usr/local/bin/mirza"
-    local URL="https://raw.githubusercontent.com/mahdiMGF2/mirzabot/main/install.sh"
+    local URL="https://raw.githubusercontent.com/MarshallStranding/Admirall/main/install.sh"
     local TEMP_FILE="/tmp/mirzabot_update.sh"
 
     # Make sure DNS works before reaching GitHub
