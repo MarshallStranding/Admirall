@@ -5,7 +5,7 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-INSTALL_LOG="/tmp/mirza_install.log"
+INSTALL_LOG="/tmp/marshallbot_install.log"
 
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
