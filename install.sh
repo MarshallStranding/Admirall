@@ -1527,7 +1527,7 @@ preflight() {
 }
 
 function install_bot() {
-    BOT_DIR="/var/www/html/mirzaprobotconfig"
+    BOT_DIR="/var/www/html/marshallbot"
     PHP_VER="$(state_get PHP_VER)"
     [ -z "$PHP_VER" ] && PHP_VER="8.2"
 
