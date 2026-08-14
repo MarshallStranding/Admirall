@@ -1866,11 +1866,6 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
         $user_id = $from_id;
     }
     
-    // اگر کیبورد Help فعال نیست، reply_markup رو null کن
-    if (!check_active_btn($setting['keyboardmain'], "text_help")) {
-        $reply_markup = null;
-    }
-    
     // =====================================================
     // 1. ارسال پیام اصلی (اطلاعات سرویس)
     // =====================================================
@@ -1905,7 +1900,7 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
     }
     
     // =====================================================
-    // 3. ارسال کانفیگ‌ها به صورت جداگانه با اسم
+    // 3. ارسال کانفیگ‌ها به صورت جداگانه با اسم (بدون کیبورد)
     // =====================================================
     if (is_array($config) && count($config) > 0) {
         foreach ($config as $index => $single_config) {
@@ -1916,15 +1911,6 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
             $text_config = "<b>" . htmlspecialchars($config_name) . "</b>\n\n<code>" . htmlspecialchars($single_config) . "</code>";
             sendmessage($user_id, $text_config, null, 'HTML');
             usleep(150000);
-        }
-        
-        // کیبورد انتخاب کانفیگ (اگه بیش از یک کانفیگ هست)
-        if (count($config) > 1 && isset($setting['status_keyboard_config']) && $setting['status_keyboard_config'] == "1") {
-            $keyboard_config = keyboard_config($config, $invoice_id);
-            if ($keyboard_config) {
-                $hint_text = $textbotlang['users']['status']['getConfigHint'] ?? "📋 کانفیگ‌های خود را انتخاب کنید:";
-                sendmessage($user_id, $hint_text, $keyboard_config, 'HTML');
-            }
         }
     }
     
