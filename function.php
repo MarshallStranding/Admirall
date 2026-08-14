@@ -1860,63 +1860,104 @@ function isBase64($string)
 function sendMessageService($panel_info, $config, $sub_link, $username_service, $reply_markup, $caption, $invoice_id, $user_id = null, $image = 'images.jpg')
 {
     global $setting, $from_id, $textbotlang;
-    if (!check_active_btn($setting['keyboardmain'], "text_help"))
-        $reply_markup = null;
-    $user_id = $user_id == null ? $from_id : $user_id;
-    $STATUS_SEND_MESSAGE_PHOTO = $panel_info['config'] == "onconfig" && (is_array($config) ? count($config) : 0) != 1 ? false : true;
-    $out_put_qrcode = "";
-    if ($panel_info['type'] == "Manualsale" || $panel_info['type'] == "ibsng" || $panel_info['type'] == "mikrotik") {
+    
+    // اگر user_id ارسال نشده، از from_id استفاده کن
+    if ($user_id === null) {
+        $user_id = $from_id;
     }
-    if ($panel_info['sublink'] == "onsublink" && $panel_info['config']) {
+    
+    // اگر کیبورد Help فعال نیست، reply_markup رو null کن
+    if (!check_active_btn($setting['keyboardmain'], "text_help")) {
+        $reply_markup = null;
+    }
+    
+    // =====================================================
+    // 1. ارسال پیام اصلی (اطلاعات سرویس)
+    // =====================================================
+    sendmessage($user_id, $caption, $reply_markup, 'HTML');
+    
+    // =====================================================
+    // 2. ارسال QR Code یا لینک اشتراک
+    // =====================================================
+    $out_put_qrcode = "";
+    if ($panel_info['sublink'] == "onsublink") {
         $out_put_qrcode = $sub_link;
-    } elseif ($panel_info['sublink'] == "onsublink") {
-        $out_put_qrcode = $sub_link;
-    } elseif ($panel_info['config'] == "onconfig") {
+    } elseif ($panel_info['config'] == "onconfig" && is_array($config) && count($config) > 0) {
         $out_put_qrcode = $config[0];
     }
-    if ($STATUS_SEND_MESSAGE_PHOTO) {
-        if ($panel_info['type'] == "WGDashboard") {
-            $urlimage = qrTempPath("{$panel_info['inboundid']}_{$invoice_id}.conf");
-            if (@file_put_contents($urlimage, $sub_link) === false) {
-                sendmessage($user_id, $caption, $reply_markup, 'HTML');
-            } else {
-                telegram('senddocument', [
-                    'chat_id' => $user_id,
-                    'document' => new CURLFile($urlimage),
-                    'reply_markup' => $reply_markup,
-                    'caption' => $caption,
-                    'parse_mode' => "HTML",
-                ]);
-                @unlink($urlimage);
-            }
+    
+    if (!empty($out_put_qrcode)) {
+        $urlimage = qrTempPath("$user_id$invoice_id.png");
+        $qrCode = createqrcode($out_put_qrcode);
+        if ($qrCode !== null && @file_put_contents($urlimage, $qrCode->getString()) !== false) {
+            addBackgroundImage($urlimage, $qrCode, $image);
+            $text_sub = "🔗 لینک اشتراک شما:\n\n<code>" . htmlspecialchars($out_put_qrcode) . "</code>";
+            telegram('sendphoto', [
+                'chat_id' => $user_id,
+                'photo' => new CURLFile($urlimage),
+                'caption' => $text_sub,
+                'parse_mode' => "HTML",
+            ]);
+            @unlink($urlimage);
         } else {
-            $urlimage = qrTempPath("$user_id$invoice_id.png");
-            $qrCode = createqrcode($out_put_qrcode);
-            $photoSent = false;
-            if ($qrCode !== null && @file_put_contents($urlimage, $qrCode->getString()) !== false) {
-                addBackgroundImage($urlimage, $qrCode, $image);
-                $response = telegram('sendphoto', [
-                    'chat_id' => $user_id,
-                    'photo' => new CURLFile($urlimage),
-                    'reply_markup' => $reply_markup,
-                    'caption' => $caption,
-                    'parse_mode' => "HTML",
-                ]);
-                $photoSent = is_array($response) && !empty($response['ok']);
-                @unlink($urlimage);
-            }
-            if (!$photoSent) {
-                sendmessage($user_id, $caption, $reply_markup, 'HTML');
-            }
-        }
-    } else {
-        sendmessage($user_id, $caption, $reply_markup, 'HTML');
-    }
-    if ($panel_info['config'] == "onconfig" && $setting['status_keyboard_config'] == "1") {
-        if (is_array($config)) {
-            sendmessage($user_id, $textbotlang['users']['status']['getConfigHint'], keyboard_config($config, $invoice_id, false), 'HTML');
+            sendmessage($user_id, "🔗 لینک اشتراک شما:\n\n<code>" . htmlspecialchars($out_put_qrcode) . "</code>", null, 'HTML');
         }
     }
+    
+    // =====================================================
+    // 3. ارسال کانفیگ‌ها به صورت جداگانه با اسم
+    // =====================================================
+    if (is_array($config) && count($config) > 0) {
+        foreach ($config as $index => $single_config) {
+            if (empty($single_config)) {
+                continue;
+            }
+            $config_name = extract_config_name($single_config);
+            $text_config = "<b>" . htmlspecialchars($config_name) . "</b>\n\n<code>" . htmlspecialchars($single_config) . "</code>";
+            sendmessage($user_id, $text_config, null, 'HTML');
+            usleep(150000);
+        }
+        
+        // کیبورد انتخاب کانفیگ (اگه بیش از یک کانفیگ هست)
+        if (count($config) > 1 && isset($setting['status_keyboard_config']) && $setting['status_keyboard_config'] == "1") {
+            $keyboard_config = keyboard_config($config, $invoice_id);
+            if ($keyboard_config) {
+                $hint_text = $textbotlang['users']['status']['getConfigHint'] ?? "📋 کانفیگ‌های خود را انتخاب کنید:";
+                sendmessage($user_id, $hint_text, $keyboard_config, 'HTML');
+            }
+        }
+    }
+    
+    return true;
+}
+
+// ============================================================
+// تابع استخراج اسم کانفیگ از لینک
+// ============================================================
+function extract_config_name($config) {
+    if (empty($config)) {
+        return 'کانفیگ جدید';
+    }
+    
+    try {
+        if (strpos($config, 'ss://') === 0) {
+            $parts = explode('#', $config);
+            return isset($parts[1]) ? urldecode($parts[1]) : 'کانفیگ جدید';
+        } elseif (strpos($config, 'vless://') === 0) {
+            $parts = parse_url($config);
+            return isset($parts['fragment']) ? urldecode($parts['fragment']) : 'کانفیگ جدید';
+        } elseif (strpos($config, 'vmess://') === 0) {
+            $decoded = json_decode(base64_decode(str_replace('vmess://', '', $config)), true);
+            return isset($decoded['ps']) ? $decoded['ps'] : 'کانفیگ جدید';
+        } elseif (strpos($config, 'trojan://') === 0) {
+            $parts = explode('#', $config);
+            return isset($parts[1]) ? urldecode($parts[1]) : 'کانفیگ جدید';
+        }
+    } catch (Exception $e) {
+        error_log("extract_config_name error: " . $e->getMessage());
+    }
+    
+    return 'کانفیگ جدید';
 }
 function isValidInvitationCode($setting, $fromId, $verfy_status)
 {
